@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import PORT from '../constants.js';
 
 const CoordInput = ({
 	label,
@@ -74,6 +75,32 @@ const Form = () => {
 	const [zoom, setZoom] = useState(1.0);
 	const [fractalType, setFractalType] = useState("mandlebrot");
 
+	const handleSubmit = () => {
+		const data = {
+			X: x, 
+			Y: y,
+			Zoom: zoom,
+			FractalType: fractalType,
+		};
+		console.log("JSON.stringify:", JSON.stringify(data))
+
+		fetch(`http://localhost:${PORT}/api/renderFractal`, {
+			method: "POST",
+			mode: "cors",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(data),
+		})
+		.then(response => response.json())
+		.then(data => {
+			console.log("return:", data);
+		})
+		.catch(error => {
+			console.error("Error:", error);
+		});
+	};
+
 	return (
 		<div
 			className="
@@ -129,6 +156,7 @@ const Form = () => {
 					p-3
 					font-mono
 					"
+					onClick={handleSubmit}
 				>
 					RENDER FRACTAL
 				</button>

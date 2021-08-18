@@ -8,6 +8,7 @@ import (
 	"fractalHeaven/render"
 	"image/jpeg"
 	"os"
+	"encoding/json"
 )
 
 const (
@@ -29,6 +30,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/", helloWorld)
+	mux.HandleFunc("/api/renderFractal", renderFractal)
 
 	server := &http.Server{
 		Addr: fmt.Sprintf("127.0.0.1:%s", PORT),
@@ -47,6 +49,29 @@ func helloWorld(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	w.Write([]byte("hello world!"))
 	return
+}
+
+type resStruct struct {
+	X float64
+	Y float64
+	Zoom float64
+	FractalType string
+}
+
+func renderFractal(w http.ResponseWriter, r *http.Request) {
+	log.Println("renderFractal received response.")
+	log.Println(r)
+	decoder := json.NewDecoder(r.Body)
+	var s resStruct
+	err := decoder.Decode(&s)
+	if err != nil {
+		w.WriteHeader(500)
+		log.Print(err)
+		return
+	}
+	responseString := fmt.Sprintf("%+v", s)
+	enableCors(&w)
+	w.Write([]byte(responseString))
 }
 
 func testStub() {
