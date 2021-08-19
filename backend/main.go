@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"github.com/rs/cors"
 	"log"
 	"fmt"
 	"flag"
@@ -32,17 +33,10 @@ func main() {
 	mux.HandleFunc("/api/", helloWorld)
 	mux.HandleFunc("/api/renderFractal", renderFractal)
 
-	server := &http.Server{
-		Addr: fmt.Sprintf("127.0.0.1:%s", PORT),
-		Handler: mux,
-	}
 
 	log.Printf("Server started on port %s.\n", PORT)
-	server.ListenAndServe()
-}
-
-func enableCors(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	handler := cors.Default().Handler(mux)
+	http.ListenAndServe(":8080", handler)
 }
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
@@ -52,15 +46,16 @@ func helloWorld(w http.ResponseWriter, r *http.Request) {
 }
 
 type resStruct struct {
-	X float64
-	Y float64
-	Zoom float64
-	FractalType string
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	Zoom float64 `json:"zoom"`
+	FractalType string `json:"fractalType"`
 }
 
 func renderFractal(w http.ResponseWriter, r *http.Request) {
 	log.Println("renderFractal received response.")
-	log.Println(r)
+	w.Header().Set("Content-Type", "application/json")
+
 	decoder := json.NewDecoder(r.Body)
 	var s resStruct
 	err := decoder.Decode(&s)
@@ -69,8 +64,13 @@ func renderFractal(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 		return
 	}
-	responseString := fmt.Sprintf("%+v", s)
-	enableCors(&w)
+
+	temp := fmt.Sprintf(
+		"x: %f y: %f zoom: %f fractalType: %s",
+		s.X, s.Y, s.Zoom, s.FractalType,
+
+	)
+	responseString := fmt.Sprintf(`{"responseString": "%s"}`, temp)
 	w.Write([]byte(responseString))
 }
 

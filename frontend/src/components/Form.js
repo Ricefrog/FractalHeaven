@@ -9,7 +9,7 @@ const CoordInput = ({
 }) => {
 	return (
 		<div className="left-0">
-			<label for={name}>{label}</label>
+			<label htmlFor={name}>{label}</label>
 			<input 
 				name={name}
 				className="
@@ -36,7 +36,7 @@ const ZoomInput = ({
 }) => {
 	return (
 		<div className="left-0">
-			<label for="zoom">Zoom Level:</label>
+			<label htmlFor="zoom">Zoom Level:</label>
 			<input 
 				name="zoom"
 				className="
@@ -76,23 +76,20 @@ const Form = () => {
 	const [fractalType, setFractalType] = useState("mandlebrot");
 
 	const handleSubmit = () => {
-		const data = {
-			X: x, 
-			Y: y,
-			Zoom: zoom,
-			FractalType: fractalType,
-		};
-		console.log("JSON.stringify:", JSON.stringify(data))
+		const data = {x, y, zoom, fractalType};
+		//console.log("JSON.stringify:", JSON.stringify(data))
 
 		fetch(`http://localhost:${PORT}/api/renderFractal`, {
 			method: "POST",
-			mode: "cors",
 			headers: {
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify(data),
 		})
-		.then(response => response.json())
+		.then(response => {
+				return response.json()
+			}
+		)
 		.then(data => {
 			console.log("return:", data);
 		})
