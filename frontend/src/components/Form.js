@@ -1,5 +1,47 @@
 import {useState} from 'react';
-import PORT from '../constants.js';
+import {PORT, MandelbrotCoords} from '../constants.js';
+
+const coordsToValueString = (coords) => {
+	return `${coords.x} ${coords.y}`;
+};
+
+const PresetCoords = ({value, handleChange, handleClick}) => {
+	return (
+		<div className="flex mt-2">
+			<select 
+				className="outline-none"
+				value={value}
+				onChange={e => handleChange(e.target.value)}
+			>
+				{
+					MandelbrotCoords.map((coords, index) => {
+						let asString = `x: ${coords.x}, y: ${coords.y}`
+						return (
+							<option
+								key={index}
+								value={`${coords.x} ${coords.y}`}
+							>
+								{asString}
+							</option>
+						);
+					})
+				}
+			</select>
+			<button
+				className="
+				bg-red-400
+				hover:bg-red-300
+				p-2
+				ml-2
+				outline-none
+				"
+				onClick={() => handleClick(value)}
+			>
+				Use preset
+			</button>
+		</div>
+	);
+};
 
 const CoordInput = ({
 	label,
@@ -8,8 +50,8 @@ const CoordInput = ({
 	handleChange,
 }) => {
 	return (
-		<div className="left-0">
-			<label htmlFor={name}>{label}</label>
+		<div className="flex">
+			<label className="self-center" htmlFor={name}>{label}</label>
 			<input 
 				name={name}
 				className="
@@ -18,6 +60,7 @@ const CoordInput = ({
 				w-6em
 				pl-1
 				outline-none
+				self-center
 				"
 				type="number" 
 				min="-2"
@@ -35,8 +78,8 @@ const ZoomInput = ({
 	handleChange,
 }) => {
 	return (
-		<div className="left-0">
-			<label htmlFor="zoom">Zoom Level:</label>
+		<div className="flex">
+			<label className="self-center" htmlFor="zoom">Zoom Level:</label>
 			<input 
 				name="zoom"
 				className="
@@ -44,6 +87,7 @@ const ZoomInput = ({
 				ml-2
 				w-6em
 				pl-1
+				self-center
 				"
 				type="number" 
 				min="1"
@@ -54,9 +98,32 @@ const ZoomInput = ({
 	);
 };
 
+const AAInput = ({checked, handleChange}) => {
+	return (
+		<div className="flex">
+			<input 
+				className="self-center"
+				type="checkbox"
+				name="antiAliasing"
+				onChange={e => handleChange(e)}
+				checked={checked}
+			/>
+			<label
+				className="
+				self-center
+				ml-2
+				"
+				for="antiAliasing"
+			>
+				Anti-Aliasing
+			</label>
+		</div>
+	);
+};
+
 const FractalTypeInput = ({value, handleChange}) => {
 	return (
-		<div>
+		<div className="flex">
 			<select 
 				className="outline-none"
 				value={value}
@@ -74,11 +141,24 @@ const Form = () => {
 	const [y, setY] = useState(0.0);
 	const [zoom, setZoom] = useState(1.0);
 	const [fractalType, setFractalType] = useState("mandlebrot");
+	const [imageStr, setImageStr] = useState("");
+	const [loading, setLoading] = useState(false);
+	const [antiAliasing, setAntiAliasing] = useState(false);
+	const [presetCoords, setPresetCoords] = useState(
+		coordsToValueString(MandelbrotCoords[0]));
 
 	const handleSubmit = () => {
-		const data = {x, y, zoom, fractalType};
-		//console.log("JSON.stringify:", JSON.stringify(data))
+		const data = {
+			x: parseFloat(x),
+			y: parseFloat(y),
+			zoom: parseFloat(zoom),
+			fractalType,
+			antiAliasing,
+		};
+		console.log("JSON.stringify:", JSON.stringify(data))
 
+		setLoading(true);
+		setImageStr("");
 		fetch(`http://localhost:${PORT}/api/renderFractal`, {
 			method: "POST",
 			headers: {
@@ -91,11 +171,21 @@ const Form = () => {
 			}
 		)
 		.then(data => {
-			console.log("return:", data);
+			setImageStr("data:image/jpeg;base64,"+data.base64);
+			setLoading(false);
 		})
 		.catch(error => {
 			console.error("Error:", error);
+			setLoading(false);
 		});
+	};
+
+	const usePreset = (value) => {
+		let coords = value.split(" ");
+		let x = coords[0];
+		let y = coords[1];
+		setX(x);
+		setY(y);
 	};
 
 	return (
@@ -124,10 +214,15 @@ const Form = () => {
 			>
 				Fractal Heaven
 			</div>
-			<div className="p-3">
+			<div className="p-3 flex flex-col">
 				<FractalTypeInput 
 					value={fractalType}
 					handleChange={v => setFractalType(v)}
+				/>
+				<PresetCoords 
+					value={presetCoords}
+					handleChange={v => setPresetCoords(v)}
+					handleClick={usePreset}
 				/>
 				<CoordInput 
 					label={"x-coordinate:"}
@@ -145,8 +240,13 @@ const Form = () => {
 					value={zoom}
 					handleChange={v => setZoom(v)}
 				/>
+				<AAInput
+					checked={antiAliasing}
+					handleChange={e => setAntiAliasing(e.target.checked)}
+				/>
 				<button
 					className="
+					mt-3
 					rounded-md
 					bg-red-400
 					hover:bg-red-300
@@ -157,6 +257,19 @@ const Form = () => {
 				>
 					RENDER FRACTAL
 				</button>
+			</div>
+			<div className="w-2/3 mx-auto mb-3 border-indigo-400 border-2">
+				{loading ? <span>Rendering fractal...</span> : <></>}
+				{imageStr
+					? <img 
+							src={imageStr}
+							className="
+							object-contain
+							"
+							alt="rendered fractal"
+						/>
+					: <></>
+				}
 			</div>
 		</div>
 	);
