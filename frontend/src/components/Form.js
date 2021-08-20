@@ -138,11 +138,12 @@ const FractalTypeInput = ({value, handleChange}) => {
 };
 
 const Form = () => {
-	const [x, setX] = useState(0.0);
-	const [y, setY] = useState(0.0);
-	const [min, setMin] = useState(-2.0);
-	const [max, setMax] = useState(2.0);
-	const [zoom, setZoom] = useState(1.0);
+	const [clientBounds, setClientBounds] = useState({
+		x: 0, y: 0, zoom: 1.0,
+	});
+	const [renderBounds, setRenderBounds] = useState({
+		x: 0, y: 0, min: -2.0, max: 2.0,
+	});
 	const [fractalType, setFractalType] = useState("mandlebrot");
 	const [imageStr, setImageStr] = useState("");
 	const [loading, setLoading] = useState(false);
@@ -152,9 +153,9 @@ const Form = () => {
 
 	const handleSubmit = () => {
 		const data = {
-			x: parseFloat(x),
-			y: parseFloat(y),
-			zoom: parseFloat(zoom),
+			x: parseFloat(clientBounds.x),
+			y: parseFloat(clientBounds.y),
+			zoom: parseFloat(clientBounds.zoom),
 			fractalType,
 			antiAliasing,
 		};
@@ -174,6 +175,14 @@ const Form = () => {
 			}
 		)
 		.then(data => {
+			console.log(data);
+			setRenderBounds({
+				...renderBounds,
+				x: data.cx,
+				y: data.cy,
+				max: data.max,
+				min: data.min,
+			});
 			setImageStr("data:image/jpeg;base64,"+data.base64);
 			setLoading(false);
 		})
@@ -187,8 +196,7 @@ const Form = () => {
 		let coords = value.split(" ");
 		let x = coords[0];
 		let y = coords[1];
-		setX(x);
-		setY(y);
+		setClientBounds({...clientBounds, x, y});
 	};
 
 	return (
@@ -230,18 +238,18 @@ const Form = () => {
 				<CoordInput 
 					label={"x-coordinate:"}
 					name={"x"}
-					value={x}
-					handleChange={v => setX(v)}
+					value={clientBounds.x}
+					handleChange={v => setClientBounds({...clientBounds, x: v})}
 				/>
 				<CoordInput 
 					label={"y-coordinate:"}
 					name={"y"}
-					value={y}
-					handleChange={v => setY(v)}
+					value={clientBounds.y}
+					handleChange={v => setClientBounds({...clientBounds, y: v})}
 				/>
 				<ZoomInput 
-					value={zoom}
-					handleChange={v => setZoom(v)}
+					value={clientBounds.zoom}
+					handleChange={v => setClientBounds({...clientBounds, zoom: v})}
 				/>
 				<AAInput
 					checked={antiAliasing}
@@ -265,8 +273,8 @@ const Form = () => {
 				{imageStr
 					? <RenderView 
 							src={imageStr}
-							max={max}
-							min={min}
+							max={renderBounds.max}
+							min={renderBounds.min}
 						/>
 					: <></>
 				}

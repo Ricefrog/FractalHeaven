@@ -35,6 +35,9 @@ const Canvas = ({imageRef, max, min}) => {
 	const handleResize = () => {
 		const canvas = canvasRef.current;
 		const image = imageRef.current;
+		if (!canvas || !image) {
+			return
+		}
 		const context = canvas.getContext("2d");
 
 		canvas.width = image.offsetWidth;
@@ -58,6 +61,10 @@ const Canvas = ({imageRef, max, min}) => {
 		}, false);
 		handleResize();
 		setTimeout(handleResize, 1);
+
+		return () => {
+			canvas.removeEventListener("mousemove", handleResize);
+		};
 	}, [handleResize, makeCoordsRelative]);
 
 	return (

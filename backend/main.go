@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"fractalHeaven/render"
 	"github.com/rs/cors"
 	"image"
@@ -49,7 +48,7 @@ func helloWorld(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-type resStruct struct {
+type requestStruct struct {
 	X            float64 `json:"x"`
 	Y            float64 `json:"y"`
 	Zoom         float64 `json:"zoom"`
@@ -57,13 +56,20 @@ type resStruct struct {
 	AntiAliasing bool    `json:"antiAliasing"`
 }
 
+type responseStruct struct {
+	Base64 string  `json:"base64"`
+	Max    float64 `json:"max"`
+	Min    float64 `json:"min"`
+	Cx     float64 `json:"cx"`
+	Cy     float64 `json:"cy"`
+}
+
 func renderFractal(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	log.Println("renderFractal received response.")
-	w.Header().Set("Content-Type", "application/json")
 
 	decoder := json.NewDecoder(r.Body)
-	var s resStruct
+	var s requestStruct
 	err := decoder.Decode(&s)
 	if err != nil {
 		w.WriteHeader(500)
@@ -98,8 +104,22 @@ func renderFractal(w http.ResponseWriter, r *http.Request) {
 	jpeg.Encode(buf, img, nil)
 	encodedImage := base64.StdEncoding.EncodeToString(buf.Bytes())
 
-	responseString := fmt.Sprintf(`{"base64": "%s"}`, encodedImage)
-	w.Write([]byte(responseString))
+	resStruct := responseStruct{
+		Base64: encodedImage,
+		Max: xmax,
+		Min: xmin,
+		Cx: cx,
+		Cy: cy,
+	}
+
+	jsonData, err := json.Marshal(resStruct)
+	if err != nil {
+		w.WriteHeader(500)
+		log.Print(err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonData)
 }
 
 func testStub() {
