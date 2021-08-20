@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {PORT, MandelbrotCoords} from '../constants.js';
+import RenderView from './RenderView.js';
 
 const coordsToValueString = (coords) => {
 	return `${coords.x} ${coords.y}`;
@@ -139,6 +140,8 @@ const FractalTypeInput = ({value, handleChange}) => {
 const Form = () => {
 	const [x, setX] = useState(0.0);
 	const [y, setY] = useState(0.0);
+	const [min, setMin] = useState(-2.0);
+	const [max, setMax] = useState(2.0);
 	const [zoom, setZoom] = useState(1.0);
 	const [fractalType, setFractalType] = useState("mandlebrot");
 	const [imageStr, setImageStr] = useState("");
@@ -258,19 +261,15 @@ const Form = () => {
 					RENDER FRACTAL
 				</button>
 			</div>
-			<div className="w-2/3 mx-auto mb-3 border-indigo-400 border-2">
 				{loading ? <span>Rendering fractal...</span> : <></>}
 				{imageStr
-					? <img 
+					? <RenderView 
 							src={imageStr}
-							className="
-							object-contain
-							"
-							alt="rendered fractal"
+							max={max}
+							min={min}
 						/>
 					: <></>
 				}
-			</div>
 		</div>
 	);
 };
