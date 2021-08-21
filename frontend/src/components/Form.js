@@ -96,6 +96,28 @@ const ZoomInput = ({
 				value={value}
 				onChange={e => handleChange(e.target.value)}
 			/>
+			<button
+				className="
+					mx-2
+					p-1
+					bg-blue-400
+					hover:bg-blue-300
+					outline-none
+					rounded-md
+				"
+				onClick={e => handleChange(value / 10)}
+			>-10x</button>
+			<button
+				className="
+					mx-2
+					p-1
+					bg-red-400
+					hover:bg-red-300
+					outline-none
+					rounded-md
+				"
+				onClick={e => handleChange(value * 10)}
+			>10x</button>
 		</div>
 	);
 };
@@ -151,6 +173,7 @@ const Form = () => {
 	const [antiAliasing, setAntiAliasing] = useState(false);
 	const [presetCoords, setPresetCoords] = useState(
 		coordsToValueString(MandelbrotCoords[0]));
+	const [textColor, setTextColor] = useState("white");
 
 	const handleSubmit = () => {
 		const data = {
@@ -215,6 +238,8 @@ const Form = () => {
 				rounded-lg
 				bg-gray-400
 				w-2/3
+				lg:w-3/5
+				2xl:w-5/12
 				text-center
 				flex
 				flex-col
@@ -282,7 +307,9 @@ const Form = () => {
 					? <RenderView 
 							src={imageStr}
 							handleSetPosition={useCursorCoords}
+							handleSetTextColor={v => setTextColor(v)}
 							renderBounds={renderBounds}
+							textColor={textColor}
 						/>
 					: <></>
 				}

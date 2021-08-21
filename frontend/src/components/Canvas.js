@@ -5,8 +5,13 @@ const Canvas = ({
 	renderBounds,
 	handleSetPosition,
 	textColor,
+	fullscreen,
+	handleChangeFullscreen,
+	fullscreenStyle,
 }) => {
 	const canvasRef = useRef(null);
+	const defaultClass = "left-0 z-10 relative";
+	const fullscreenClass = "z-10 absolute";
 
 	const getRelativePosition = useCallback((canvasPos) => {
 		const ctx = canvasRef.current.getContext("2d");
@@ -72,16 +77,6 @@ const Canvas = ({
 		canvas.height = image.offsetHeight;
 	}, [canvasRef, imageRef]);
 
-	/*
-	const canvasFits = useCallback(() => {
-		const canvas = canvasRef.current;
-		const image = imageRef.current;
-		return (
-			(canvas.width === image.offsetWidth) &&
-			(canvas.height === image.offsetHeight)
-		);
-	}, [canvasRef, imageRef]); */
-
 	useEffect(() => {
 		const canvas = canvasRef.current;
 
@@ -91,34 +86,44 @@ const Canvas = ({
 			setTimeout(() => renderMousePosition({x: 0, y: 0}), 10);
 		};
 
-		window.addEventListener("resize", resize);
-
-		canvas.addEventListener("mousemove", (event) => {
+		const handleMouseMove = (event) => {
 			let mousePos = getMousePos(event);
 			renderMousePosition(mousePos);
-		}, false);
+		};
 
-		canvas.addEventListener("click", (event) => {
+		const handleClick = (event) => {
 			let mousePos = getMousePos(event);
 			let coords = getRelativePosition(mousePos);
 			handleSetPosition({x: coords.x, y: coords.y});
-		}, false);
+			if (fullscreen) {
+				handleChangeFullscreen(false);
+			}
+		};
+
+		window.addEventListener("resize", resize);
+		canvas.addEventListener("mousemove", handleMouseMove, false);
+		canvas.addEventListener("click", handleClick, false);
 
 		resize();
 
 		return () => {
 			window.removeEventListener("resize", resize);
-			canvas.removeEventListener("mousemove", handleResize);
+			canvas.removeEventListener("mousemove", handleMouseMove);
+			canvas.removeEventListener("click", handleClick);
 		};
-	}, [handleResize, renderMousePosition, handleSetPosition, getRelativePosition]);
+	}, [
+		handleResize,
+		renderMousePosition,
+		handleSetPosition,
+		getRelativePosition,
+		fullscreen,
+		handleChangeFullscreen,
+	]);
 
 	return (
 		<canvas
-			className="
-			left-0
-			relative
-			z-10
-			"
+			style={fullscreen ? fullscreenStyle : {}}
+			className={fullscreen ? fullscreenClass : defaultClass}
 			ref={canvasRef} 
 		/>
 	);
