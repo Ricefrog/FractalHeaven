@@ -1,25 +1,52 @@
-import React, {useRef, useEffect} from 'react';
+import React, {useRef, useEffect, useCallback} from 'react';
 
-const Canvas = ({imageRef, max, min}) => {
+const Canvas = ({
+	imageRef,
+	renderBounds,
+	handleSetPosition,
+	textColor,
+}) => {
 	const canvasRef = useRef(null);
 
-	const makeCoordsRelative = (ctx, canvasPos) => {
+	const getRelativePosition = useCallback((canvasPos) => {
+		const ctx = canvasRef.current.getContext("2d");
 		let width = ctx.canvas.width;
 		let mid = width / 2.0;
-		let x = canvasPos.x - mid;
-		let y = mid - canvasPos.y;
-		let relX = (x / mid) * max;
-		let relY = (y / mid) * max;
-		/*
-		console.log("width:", width, "mid:", mid);
-		console.log("before:", "x:", canvasPos.x, "y:", canvasPos.y);
-		*/
-		console.log("max:", max);
-		console.log("x:", x, "y:", y);
-		console.log("relX:", relX, "relY:", relY);
-	};
+		// percent distance from center
+		let xScale = (canvasPos.x - mid)/mid;
+		let yScale = (mid - canvasPos.y)/mid;
+		// percent distance from the center
+		// multiplied by the scaled width between the center and the max bound
+		// plus the center offset
+		let relX = xScale*(renderBounds.xmax-renderBounds.x)+renderBounds.x;
+		let relY = yScale*(renderBounds.ymax-renderBounds.y)-renderBounds.y;
 
-	const getMousePos = (canvas, event) => {
+		return {x: relX, y: relY};
+	}, [canvasRef, renderBounds]);
+
+	const drawPosition = useCallback((ctx, x, y) => {
+		const font = "Courier New";
+		const width = ctx.canvas.width;
+		const fontSize = Math.floor(width / 30);
+		const textX = Math.floor(width / 10);
+		const textY = Math.floor(width / 10);
+
+		ctx.font = `${fontSize}px ${font}`;
+		ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+		ctx.fillStyle = textColor;
+		ctx.fillText("Click to apply cursor position.", textX, textY);
+		ctx.fillText(`x: ${x}`, textX, textY + fontSize);
+		ctx.fillText(`y: ${y}`, textX, textY + 2*fontSize);
+	}, [textColor]);
+
+	const renderMousePosition = useCallback((canvasPos) => {
+		const ctx = canvasRef.current.getContext("2d");
+		const coords = getRelativePosition(canvasPos);
+		drawPosition(ctx, coords.x, coords.y);
+	}, [canvasRef, drawPosition, getRelativePosition]);
+
+	const getMousePos = (event) => {
+		const canvas = canvasRef.current;
 		let rect = canvas.getBoundingClientRect();
 		return {
 			x: event.clientX - rect.left,
@@ -27,45 +54,63 @@ const Canvas = ({imageRef, max, min}) => {
 		};
 	};
 
+	/*
 	const fillDraw = (ctx, fillColor) => {
 		ctx.fillStyle = fillColor;
 		ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 	};
+	*/
 
-	const handleResize = () => {
+	const handleResize = useCallback(() => {
 		const canvas = canvasRef.current;
 		const image = imageRef.current;
 		if (!canvas || !image) {
 			return
 		}
-		const context = canvas.getContext("2d");
 
 		canvas.width = image.offsetWidth;
 		canvas.height = image.offsetHeight;
-		fillDraw(context, "rgba(0, 0, 255, 0.5)");
-	};
+	}, [canvasRef, imageRef]);
+
+	/*
+	const canvasFits = useCallback(() => {
+		const canvas = canvasRef.current;
+		const image = imageRef.current;
+		return (
+			(canvas.width === image.offsetWidth) &&
+			(canvas.height === image.offsetHeight)
+		);
+	}, [canvasRef, imageRef]); */
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
-		const context = canvas.getContext("2d");
 
-		window.onresize = () => {
+		const resize = () => {
 			handleResize();
 			setTimeout(handleResize, 1);
+			setTimeout(() => renderMousePosition({x: 0, y: 0}), 10);
 		};
 
+		window.addEventListener("resize", resize);
 
 		canvas.addEventListener("mousemove", (event) => {
-			let mousePos = getMousePos(canvas, event);
-			makeCoordsRelative(context, mousePos);
+			let mousePos = getMousePos(event);
+			renderMousePosition(mousePos);
 		}, false);
-		handleResize();
-		setTimeout(handleResize, 1);
+
+		canvas.addEventListener("click", (event) => {
+			let mousePos = getMousePos(event);
+			let coords = getRelativePosition(mousePos);
+			handleSetPosition({x: coords.x, y: coords.y});
+		}, false);
+
+		resize();
 
 		return () => {
+			window.removeEventListener("resize", resize);
 			canvas.removeEventListener("mousemove", handleResize);
 		};
-	}, [handleResize, makeCoordsRelative]);
+	}, [handleResize, renderMousePosition, handleSetPosition, getRelativePosition]);
 
 	return (
 		<canvas

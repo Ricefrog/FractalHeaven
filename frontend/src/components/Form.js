@@ -89,6 +89,7 @@ const ZoomInput = ({
 				w-6em
 				pl-1
 				self-center
+				outline-none
 				"
 				type="number" 
 				min="1"
@@ -142,7 +143,7 @@ const Form = () => {
 		x: 0, y: 0, zoom: 1.0,
 	});
 	const [renderBounds, setRenderBounds] = useState({
-		x: 0, y: 0, min: -2.0, max: 2.0,
+		x: 0, y: 0, xmin: -2.0, xmax: 2.0, ymin: -2.0, ymax: 2.0,
 	});
 	const [fractalType, setFractalType] = useState("mandlebrot");
 	const [imageStr, setImageStr] = useState("");
@@ -178,10 +179,12 @@ const Form = () => {
 			console.log(data);
 			setRenderBounds({
 				...renderBounds,
-				x: data.cx,
-				y: data.cy,
-				max: data.max,
-				min: data.min,
+				x: data.x,
+				y: data.y,
+				xmax: data.xmax,
+				xmin: data.xmin,
+				ymax: data.ymax,
+				ymin: data.ymin,
 			});
 			setImageStr("data:image/jpeg;base64,"+data.base64);
 			setLoading(false);
@@ -197,6 +200,10 @@ const Form = () => {
 		let x = coords[0];
 		let y = coords[1];
 		setClientBounds({...clientBounds, x, y});
+	};
+
+	const useCursorCoords = (coords) => {
+		setClientBounds({...clientBounds, x: coords.x, y: coords.y});
 	};
 
 	return (
@@ -263,6 +270,7 @@ const Form = () => {
 					hover:bg-red-300
 					p-3
 					font-mono
+					outline-none
 					"
 					onClick={handleSubmit}
 				>
@@ -273,8 +281,8 @@ const Form = () => {
 				{imageStr
 					? <RenderView 
 							src={imageStr}
-							max={renderBounds.max}
-							min={renderBounds.min}
+							handleSetPosition={useCursorCoords}
+							renderBounds={renderBounds}
 						/>
 					: <></>
 				}

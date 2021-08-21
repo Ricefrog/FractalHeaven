@@ -58,10 +58,12 @@ type requestStruct struct {
 
 type responseStruct struct {
 	Base64 string  `json:"base64"`
-	Max    float64 `json:"max"`
-	Min    float64 `json:"min"`
-	Cx     float64 `json:"cx"`
-	Cy     float64 `json:"cy"`
+	XMax    float64 `json:"xmax"`
+	XMin    float64 `json:"xmin"`
+	YMax    float64 `json:"ymax"`
+	YMin    float64 `json:"ymin"`
+	Cx     float64 `json:"x"`
+	Cy     float64 `json:"y"`
 }
 
 func renderFractal(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +79,7 @@ func renderFractal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cx, cy := s.X, s.Y
+	cx, cy := s.X, -s.Y
 	boundary := 2.0 / s.Zoom
 	xmin, ymin := (cx - boundary), (cy - boundary)
 	xmax, ymax := (cx + boundary), (cy + boundary)
@@ -89,6 +91,7 @@ func renderFractal(w http.ResponseWriter, r *http.Request) {
 		cx, cy,
 	)
 
+	log.Printf("Center: (%f, %f).\n", cx, cy)
 	var img image.Image
 	if s.AntiAliasing {
 		log.Println("Rendering with anti-aliasing.")
@@ -106,8 +109,10 @@ func renderFractal(w http.ResponseWriter, r *http.Request) {
 
 	resStruct := responseStruct{
 		Base64: encodedImage,
-		Max: xmax,
-		Min: xmin,
+		XMax: xmax,
+		XMin: xmin,
+		YMax: ymax,
+		YMin: ymin,
 		Cx: cx,
 		Cy: cy,
 	}

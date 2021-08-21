@@ -1,11 +1,21 @@
 import Canvas from './Canvas.js';
-import {useRef} from 'react';
+import {useRef, useState} from 'react';
 
-const RenderView = ({src, max, min}) => {
+const RenderView = ({src, renderBounds, handleSetPosition}) => {
+	const [textColor, setTextColor] = useState("white");
 	const imageRef = useRef(null);
-
 	return (
-		<div className="w-2/3 mx-auto h-2/3 flex justify-center">
+		<div className="w-2/3 mx-auto h-2/3 flex flex-col justify-center">
+			<button
+				className="bg-blue-300"
+				onClick={() => {
+					textColor === "white" 
+						? setTextColor("black")
+						: setTextColor("white");
+				}}
+			>
+				Change text color to {textColor === "white" ? "black" : "white"}.
+			</button>
 			<div
 				className="
 					w-full
@@ -29,9 +39,10 @@ const RenderView = ({src, max, min}) => {
 					alt="rendered fractals"
 				/>
 				<Canvas 
-					max={max}
-					min={min}
+					renderBounds={renderBounds}
+					handleSetPosition={handleSetPosition}
 					imageRef={imageRef}
+					textColor={textColor}
 				/>
 			</div>
 		</div>
