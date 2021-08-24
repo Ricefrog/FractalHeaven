@@ -7,11 +7,11 @@ import (
 	"flag"
 	"fractalHeaven/render"
 	"github.com/rs/cors"
-	"math/big"
 	"image"
 	"image/jpeg"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -58,10 +58,10 @@ type requestStruct struct {
 
 type responseStruct struct {
 	Base64 string  `json:"base64"`
-	XMax   float64 `json:"xmax"`
-	XMin   float64 `json:"xmin"`
-	YMax   float64 `json:"ymax"`
-	YMin   float64 `json:"ymin"`
+	XMax    float64 `json:"xmax"`
+	XMin    float64 `json:"xmin"`
+	YMax    float64 `json:"ymax"`
+	YMin    float64 `json:"ymin"`
 	Cx     float64 `json:"x"`
 	Cy     float64 `json:"y"`
 }
@@ -78,18 +78,11 @@ func renderFractal(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 		return
 	}
-	log.Println(s)
 
-	cx, cy := big.NewFloat(s.X), big.NewFloat(-s.Y)
-
-	// Distance from the center.
-	startBoundary, zoom := big.NewFloat(2.0), big.NewFloat(s.Zoom)
-	boundary := new(big.Float).Quo(startBoundary, zoom)
-
-	xmin := new(big.Float).Sub(cx, boundary)
-	ymin := new(big.Float).Sub(cy, boundary)
-	xmax := new(big.Float).Add(cx, boundary)
-	ymax := new(big.Float).Add(cy, boundary)
+	cx, cy := s.X, -s.Y
+	boundary := 2.0 / s.Zoom
+	xmin, ymin := (cx - boundary), (cy - boundary)
+	xmax, ymax := (cx + boundary), (cy + boundary)
 
 	frameInfo := render.ConstructFrameInfo(
 		boundary,
@@ -98,11 +91,8 @@ func renderFractal(w http.ResponseWriter, r *http.Request) {
 		cx, cy,
 	)
 
-	log.Printf("Center: (%s, %s).\n", render.BigPrint(cx), render.BigPrint(cy))
+	log.Printf("Center: (%f, %f).\n", cx, cy)
 	var img image.Image
-	log.Println("Rendering without anti-aliasing.")
-	img = <-render.RenderMFrame(WIDTH, HEIGHT, frameInfo)
-	/*
 	if s.AntiAliasing {
 		log.Println("Rendering with anti-aliasing.")
 		img = <-render.RenderMFrameAA(WIDTH, HEIGHT, frameInfo)
@@ -110,7 +100,6 @@ func renderFractal(w http.ResponseWriter, r *http.Request) {
 		log.Println("Rendering without anti-aliasing.")
 		img = <-render.RenderMFrame(WIDTH, HEIGHT, frameInfo)
 	}
-	*/
 
 	log.Printf("Image rendered. %f s.\n", time.Since(start).Seconds())
 
@@ -118,20 +107,14 @@ func renderFractal(w http.ResponseWriter, r *http.Request) {
 	jpeg.Encode(buf, img, nil)
 	encodedImage := base64.StdEncoding.EncodeToString(buf.Bytes())
 
-	ret_xmax, _ := xmax.Float64()
-	ret_xmin, _ := xmin.Float64()
-	ret_ymax, _ := ymax.Float64()
-	ret_ymin, _ := ymin.Float64()
-	ret_cx, _ := cx.Float64()
-	ret_cy, _ := cy.Float64()
 	resStruct := responseStruct{
 		Base64: encodedImage,
-		XMax:   ret_xmax,
-		XMin:   ret_xmin,
-		YMax:   ret_ymax,
-		YMin:   ret_ymin,
-		Cx:     ret_cx,
-		Cy:     ret_cy,
+		XMax: xmax,
+		XMin: xmin,
+		YMax: ymax,
+		YMin: ymin,
+		Cx: cx,
+		Cy: cy,
 	}
 
 	jsonData, err := json.Marshal(resStruct)
@@ -145,11 +128,9 @@ func renderFractal(w http.ResponseWriter, r *http.Request) {
 }
 
 func testStub() {
-	/*
 	frameInfo := render.ConstructFrameInfo(float64(2.0), float64(-2.0), float64(-2.0), float64(2.0), float64(2.0), float64(0.0), float64(0.0))
 	img := <-render.RenderMFrame(WIDTH, HEIGHT, frameInfo)
 	log.Println("Image rendered.")
 	jpeg.Encode(os.Stdout, img, nil)
-	*/
-	log.Println("nuthin")
+
 }
