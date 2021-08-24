@@ -210,7 +210,28 @@ func renderMBoundsAA(
 }
 */
 
-func renderMBounds(
+/*
+func RenderMFrameAA(width, height int, f FrameInfo) <-chan image.Image {
+	boundary, xmin, ymin, _, _, cx, cy := f.Read()
+	c1 := renderMBoundsAA(
+		width/2,
+		height/2,
+		xmin,
+		ymin,
+		xmin+boundary,
+		ymin+boundary,
+	)
+	c2 := renderMBoundsAA(
+		width/2, height/2, cx, ymin, cx+boundary, ymin+boundary)
+	c3 := renderMBoundsAA(
+		width/2, height/2, xmin, cy, xmin+boundary, cy+boundary)
+	c4 := renderMBoundsAA(
+		width/2, height/2, cx, cy, cx+boundary, cy+boundary)
+	return combine(width, height, c1, c2, c3, c4)
+}
+*/
+
+func renderMBoundsHP(
 	width, height int, xmin, ymin, xmax, ymax *big.Float,
 ) <-chan image.Image {
 	log.Printf("rendering bounds (%s, %s), (%s, %s)\n",
@@ -238,30 +259,11 @@ func renderMBounds(
 	return c
 }
 
-/*
-func RenderMFrameAA(width, height int, f FrameInfo) <-chan image.Image {
+// M stands for mandelbrot
+// HP stands for high-precision.
+func RenderMFrameHP(width, height int, f FrameInfo) <-chan image.Image {
 	boundary, xmin, ymin, _, _, cx, cy := f.Read()
-	c1 := renderMBoundsAA(
-		width/2,
-		height/2,
-		xmin,
-		ymin,
-		xmin+boundary,
-		ymin+boundary,
-	)
-	c2 := renderMBoundsAA(
-		width/2, height/2, cx, ymin, cx+boundary, ymin+boundary)
-	c3 := renderMBoundsAA(
-		width/2, height/2, xmin, cy, xmin+boundary, cy+boundary)
-	c4 := renderMBoundsAA(
-		width/2, height/2, cx, cy, cx+boundary, cy+boundary)
-	return combine(width, height, c1, c2, c3, c4)
-}
-*/
-
-func RenderMFrame(width, height int, f FrameInfo) <-chan image.Image {
-	boundary, xmin, ymin, _, _, cx, cy := f.Read()
-	c1 := renderMBounds(
+	c1 := renderMBoundsHP(
 		width/2,
 		height/2,
 		xmin,
@@ -269,7 +271,7 @@ func RenderMFrame(width, height int, f FrameInfo) <-chan image.Image {
 		new(big.Float).Add(xmin, boundary),
 		new(big.Float).Add(ymin, boundary),
 	)
-	c2 := renderMBounds(
+	c2 := renderMBoundsHP(
 		width/2,
 		height/2,
 		cx,
@@ -277,7 +279,7 @@ func RenderMFrame(width, height int, f FrameInfo) <-chan image.Image {
 		new(big.Float).Add(cx, boundary),
 		new(big.Float).Add(ymin, boundary),
 	)
-	c3 := renderMBounds(
+	c3 := renderMBoundsHP(
 		width/2,
 		height/2,
 		xmin,
@@ -285,7 +287,7 @@ func RenderMFrame(width, height int, f FrameInfo) <-chan image.Image {
 		new(big.Float).Add(xmin, boundary),
 		new(big.Float).Add(cy, boundary),
 	)
-	c4 := renderMBounds(
+	c4 := renderMBoundsHP(
 		width/2,
 		height/2,
 		cx,

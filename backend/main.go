@@ -7,10 +7,10 @@ import (
 	"flag"
 	"fractalHeaven/render"
 	"github.com/rs/cors"
-	"math/big"
 	"image"
 	"image/jpeg"
 	"log"
+	"math/big"
 	"net/http"
 	"time"
 )
@@ -49,11 +49,12 @@ func helloWorld(w http.ResponseWriter, r *http.Request) {
 }
 
 type requestStruct struct {
-	X            float64 `json:"x"`
-	Y            float64 `json:"y"`
-	Zoom         float64 `json:"zoom"`
-	FractalType  string  `json:"fractalType"`
-	AntiAliasing bool    `json:"antiAliasing"`
+	X             float64 `json:"x"`
+	Y             float64 `json:"y"`
+	Zoom          float64 `json:"zoom"`
+	FractalType   string  `json:"fractalType"`
+	AntiAliasing  bool    `json:"antiAliasing"`
+	HighPrecision bool    `json:"highPrecision"`
 }
 
 type responseStruct struct {
@@ -103,13 +104,13 @@ func renderFractal(w http.ResponseWriter, r *http.Request) {
 	log.Println("Rendering without anti-aliasing.")
 	img = <-render.RenderMFrame(WIDTH, HEIGHT, frameInfo)
 	/*
-	if s.AntiAliasing {
-		log.Println("Rendering with anti-aliasing.")
-		img = <-render.RenderMFrameAA(WIDTH, HEIGHT, frameInfo)
-	} else {
-		log.Println("Rendering without anti-aliasing.")
-		img = <-render.RenderMFrame(WIDTH, HEIGHT, frameInfo)
-	}
+		if s.AntiAliasing {
+			log.Println("Rendering with anti-aliasing.")
+			img = <-render.RenderMFrameAA(WIDTH, HEIGHT, frameInfo)
+		} else {
+			log.Println("Rendering without anti-aliasing.")
+			img = <-render.RenderMFrame(WIDTH, HEIGHT, frameInfo)
+		}
 	*/
 
 	log.Printf("Image rendered. %f s.\n", time.Since(start).Seconds())
@@ -146,10 +147,10 @@ func renderFractal(w http.ResponseWriter, r *http.Request) {
 
 func testStub() {
 	/*
-	frameInfo := render.ConstructFrameInfo(float64(2.0), float64(-2.0), float64(-2.0), float64(2.0), float64(2.0), float64(0.0), float64(0.0))
-	img := <-render.RenderMFrame(WIDTH, HEIGHT, frameInfo)
-	log.Println("Image rendered.")
-	jpeg.Encode(os.Stdout, img, nil)
+		frameInfo := render.ConstructFrameInfo(float64(2.0), float64(-2.0), float64(-2.0), float64(2.0), float64(2.0), float64(0.0), float64(0.0))
+		img := <-render.RenderMFrame(WIDTH, HEIGHT, frameInfo)
+		log.Println("Image rendered.")
+		jpeg.Encode(os.Stdout, img, nil)
 	*/
 	log.Println("nuthin")
 }
