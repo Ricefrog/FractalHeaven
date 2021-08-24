@@ -67,20 +67,52 @@ type responseStruct struct {
 	Cy     float64 `json:"y"`
 }
 
-func renderFractal(w http.ResponseWriter, r *http.Request) {
+func renderMandelbrot(s requestStruct) responseStruct {
+	log.Println("Rendering mandelbrot (regular precision).")
 	start := time.Now()
-	log.Println("renderFractal received response.")
+	cx, cy := s.X, -s.Y
+	boundary := 2.0 / s.Zoom
+	xmin, ymin := (cx - boundary), (cy - boundary)
+	xmax, ymax := (cx + boundary), (cy + boundary)
 
-	decoder := json.NewDecoder(r.Body)
-	var s requestStruct
-	err := decoder.Decode(&s)
-	if err != nil {
-		w.WriteHeader(500)
-		log.Print(err)
-		return
+	frameInfo := render.ConstructFrameInfo(
+		boundary,
+		xmin, ymin,
+		xmax, ymax,
+		cx, cy,
+	)
+
+	log.Printf("Center: (%g, %g).\n", cx, cy)
+	var img image.Image
+	if s.AntiAliasing {
+		log.Println("Rendering with anti-aliasing.")
+		img = <-render.RenderMFrameAA(WIDTH, HEIGHT, frameInfo)
+	} else {
+		log.Println("Rendering without anti-aliasing.")
+		img = <-render.RenderMFrame(WIDTH, HEIGHT, frameInfo)
 	}
-	log.Println(s)
 
+	log.Printf("Image rendered. %f s.\n", time.Since(start).Seconds())
+
+	buf := new(bytes.Buffer)
+	jpeg.Encode(buf, img, nil)
+	encodedImage := base64.StdEncoding.EncodeToString(buf.Bytes())
+
+	resStruct := responseStruct{
+		Base64: encodedImage,
+		XMax: xmax,
+		XMin: xmin,
+		YMax: ymax,
+		YMin: ymin,
+		Cx: cx,
+		Cy: cy,
+	}
+	return resStruct
+}
+
+func renderMandelbrotHP(s requestStruct) responseStruct {
+	log.Println("Rendering mandelbrot (high-precision).")
+	start := time.Now()
 	cx, cy := big.NewFloat(s.X), big.NewFloat(-s.Y)
 
 	// Distance from the center.
@@ -92,7 +124,7 @@ func renderFractal(w http.ResponseWriter, r *http.Request) {
 	xmax := new(big.Float).Add(cx, boundary)
 	ymax := new(big.Float).Add(cy, boundary)
 
-	frameInfo := render.ConstructFrameInfo(
+	frameInfo := render.ConstructFrameInfoHP(
 		boundary,
 		xmin, ymin,
 		xmax, ymax,
@@ -102,7 +134,7 @@ func renderFractal(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Center: (%s, %s).\n", render.BigPrint(cx), render.BigPrint(cy))
 	var img image.Image
 	log.Println("Rendering without anti-aliasing.")
-	img = <-render.RenderMFrame(WIDTH, HEIGHT, frameInfo)
+	img = <-render.RenderMFrameHP(WIDTH, HEIGHT, frameInfo)
 	/*
 		if s.AntiAliasing {
 			log.Println("Rendering with anti-aliasing.")
@@ -133,6 +165,30 @@ func renderFractal(w http.ResponseWriter, r *http.Request) {
 		YMin:   ret_ymin,
 		Cx:     ret_cx,
 		Cy:     ret_cy,
+	}
+	return resStruct
+}
+
+func renderFractal(w http.ResponseWriter, r *http.Request) {
+	log.Println("renderFractal received response.")
+
+	decoder := json.NewDecoder(r.Body)
+	var s requestStruct
+	err := decoder.Decode(&s)
+	if err != nil {
+		w.WriteHeader(500)
+		log.Print(err)
+		return
+	}
+
+	log.Println(s)
+	var resStruct responseStruct
+	if (s.FractalType == "mandelbrot") {
+		if (s.HighPrecision) {
+			resStruct = renderMandelbrotHP(s)
+		} else {
+			resStruct = renderMandelbrot(s)
+		}
 	}
 
 	jsonData, err := json.Marshal(resStruct)

@@ -13,6 +13,40 @@ import (
 )
 
 type FrameInfo struct {
+	boundary float64
+	xmin float64
+	ymin float64
+	xmax float64
+	ymax float64
+	centerX float64
+	centerY float64
+}
+
+func ConstructFrameInfo(b, xmin, ymin, xmax, ymax, cx, cy float64) FrameInfo {
+	return FrameInfo {
+		boundary: b,
+		xmin: xmin,
+		ymin: ymin,
+		xmax: xmax,
+		ymax: ymax,
+		centerX: cx,
+		centerY: cy,
+	}
+}
+
+func (f FrameInfo) Read() (
+	float64,
+	float64,
+	float64,
+	float64,
+	float64,
+	float64,
+	float64,
+) {
+	return f.boundary, f.xmin, f.ymin, f.xmax, f.ymax, f.centerX, f.centerY
+}
+
+type FrameInfoHP struct {
 	boundary *big.Float
 	xmin     *big.Float
 	ymin     *big.Float
@@ -22,8 +56,8 @@ type FrameInfo struct {
 	centerY  *big.Float
 }
 
-func ConstructFrameInfo(b, xmin, ymin, xmax, ymax, cx, cy *big.Float) FrameInfo {
-	return FrameInfo{
+func ConstructFrameInfoHP(b, xmin, ymin, xmax, ymax, cx, cy *big.Float) FrameInfoHP {
+	return FrameInfoHP{
 		boundary: b,
 		xmin:     xmin,
 		ymin:     ymin,
@@ -34,7 +68,7 @@ func ConstructFrameInfo(b, xmin, ymin, xmax, ymax, cx, cy *big.Float) FrameInfo 
 	}
 }
 
-func (f FrameInfo) Read() (
+func (f FrameInfoHP) Read() (
 	*big.Float,
 	*big.Float,
 	*big.Float,
@@ -185,7 +219,6 @@ func combine(
 	return c
 }
 
-/*
 func renderMBoundsAA(
 	width, height int, xmin, ymin, xmax, ymax float64,
 ) <-chan image.Image {
@@ -208,9 +241,7 @@ func renderMBoundsAA(
 
 	return c
 }
-*/
 
-/*
 func RenderMFrameAA(width, height int, f FrameInfo) <-chan image.Image {
 	boundary, xmin, ymin, _, _, cx, cy := f.Read()
 	c1 := renderMBoundsAA(
@@ -229,7 +260,6 @@ func RenderMFrameAA(width, height int, f FrameInfo) <-chan image.Image {
 		width/2, height/2, cx, cy, cx+boundary, cy+boundary)
 	return combine(width, height, c1, c2, c3, c4)
 }
-*/
 
 func renderMBoundsHP(
 	width, height int, xmin, ymin, xmax, ymax *big.Float,
@@ -261,7 +291,7 @@ func renderMBoundsHP(
 
 // M stands for mandelbrot
 // HP stands for high-precision.
-func RenderMFrameHP(width, height int, f FrameInfo) <-chan image.Image {
+func RenderMFrameHP(width, height int, f FrameInfoHP) <-chan image.Image {
 	boundary, xmin, ymin, _, _, cx, cy := f.Read()
 	c1 := renderMBoundsHP(
 		width/2,
@@ -295,5 +325,45 @@ func RenderMFrameHP(width, height int, f FrameInfo) <-chan image.Image {
 		new(big.Float).Add(cx, boundary),
 		new(big.Float).Add(cy, boundary),
 	)
+	return combine(width, height, c1, c2, c3, c4)
+}
+
+func renderMBounds(
+	width, height int, xmin, ymin, xmax, ymax float64,
+) <-chan image.Image {
+	log.Printf("rendering bounds (%f, %f), (%f, %f)\n", xmin, ymin, xmax, ymax)
+	c := make(chan image.Image)
+	go func() {
+		img := image.NewRGBA(image.Rect(0, 0, width, height))
+		for py := 0; py < height; py++ {
+			y := float64(py)/float64(height)*(ymax-ymin) + ymin
+			for px := 0; px < width; px++ {
+				x := float64(px)/float64(width)*(xmax-xmin) + xmin
+				// Image point (px, py) represents complex value z.
+				img.Set(px, py, mandelbrot(complex(x, y)))
+			}
+		}
+		c <- img
+	}()
+
+	return c
+}
+
+func RenderMFrame(width, height int, f FrameInfo) <-chan image.Image {
+	boundary, xmin, ymin, _, _, cx, cy := f.Read()
+	c1 := renderMBounds(
+			width/2,
+			height/2,
+			xmin,
+			ymin,
+			xmin + boundary,
+			ymin + boundary,
+		)
+	c2 := renderMBounds(
+			width/2, height/2, cx, ymin, cx + boundary, ymin + boundary)
+	c3 := renderMBounds(
+			width/2, height/2, xmin, cy, xmin + boundary, cy + boundary)
+	c4 := renderMBounds(
+			width/2, height/2, cx, cy, cx + boundary, cy + boundary)
 	return combine(width, height, c1, c2, c3, c4)
 }

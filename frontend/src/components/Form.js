@@ -146,6 +146,29 @@ const AAInput = ({checked, handleChange}) => {
 	);
 };
 
+const HPInput = ({checked, handleChange}) => {
+	return (
+		<div className="flex">
+			<input 
+				className="self-center"
+				type="checkbox"
+				name="highPrecision"
+				onChange={e => handleChange(e)}
+				checked={checked}
+			/>
+			<label
+				className="
+				self-center
+				ml-2
+				"
+				htmlFor="highPrecision"
+			>
+				High Precision
+			</label>
+		</div>
+	);
+};
+
 const FractalTypeInput = ({value, handleChange}) => {
 	return (
 		<div className="flex">
@@ -170,13 +193,14 @@ const Form = () => {
 	const [renderBounds, setRenderBounds] = useState({
 		x: 0, y: 0, xmin: -2.0, xmax: 2.0, ymin: -2.0, ymax: 2.0,
 	});
-	const [fractalType, setFractalType] = useState("mandlebrot");
+	const [fractalType, setFractalType] = useState("mandelbrot");
 	const [imageStr, setImageStr] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [antiAliasing, setAntiAliasing] = useState(false);
-	const [presetCoords, setPresetCoords] = useState(
-		coordsToValueString(MandelbrotCoords[0]));
+	const [highPrecision, setHighPrecision] = useState(false);
+	const [presetCoords, setPresetCoords] = useState(coordsToValueString(MandelbrotCoords[0]));
 	const [textColor, setTextColor] = useState("white");
+	const [fetchError, setFetchError] = useState(false);
 
 	const navButtonActiveClass = "bg-blue-400 hover:bg-blue-300 w-full sm:w-1/6 sm:h-2/3 "
 		+ "rounded-md font-mono outline-none p-3 flex-grow";
@@ -199,7 +223,7 @@ const Form = () => {
 	};
 
 	const goForward = () => {
-		if (index < history.length) {
+		if (index < history.length-1) {
 			objectToClientBounds(history[index+1]);
 			setIndex(index+1);
 		}
@@ -210,8 +234,6 @@ const Form = () => {
 			x: object.x,
 			y: object.y,
 			zoom: object.zoom,
-			fractalType: object.fractalType,
-			antiAliasing: object.antiAliasing,
 		});
 		setRenderBounds({
 			x: object.x,
@@ -223,6 +245,7 @@ const Form = () => {
 		});
 		setFractalType(object.fractalType);
 		setAntiAliasing(object.antiAliasing);
+		setHighPrecision(object.highPrecision);
 		setImageStr(object.imageStr);
 	};
 
@@ -233,9 +256,11 @@ const Form = () => {
 			zoom: parseFloat(clientBounds.zoom),
 			fractalType,
 			antiAliasing,
+			highPrecision,
 		};
 		//console.log("JSON.stringify:", JSON.stringify(data))
 
+		setFetchError(false);
 		setLoading(true);
 		setImageStr("");
 		fetch(`http://localhost:${PORT}/api/renderFractal`, {
@@ -274,6 +299,7 @@ const Form = () => {
 		})
 		.catch(error => {
 			console.error("Error:", error);
+			setFetchError(true);
 			setLoading(false);
 		});
 	};
@@ -352,6 +378,10 @@ const Form = () => {
 					checked={antiAliasing}
 					handleChange={e => setAntiAliasing(e.target.checked)}
 				/>
+				<HPInput
+					checked={highPrecision}
+					handleChange={e => setHighPrecision(e.target.checked)}
+				/>
 				<div className="my-4 flex items-center sm:flex-row flex-col">
 					<button
 						className={
@@ -389,7 +419,8 @@ const Form = () => {
 					</button>
 				</div>
 			</div>
-				{loading ? <span>Rendering fractal...</span> : <></>}
+				{loading ? <span className="mb-3">Rendering fractal...</span> : <></>}
+				{fetchError ? <span className="mb-3">Server error.</span> : <></>}
 				{imageStr
 					? <RenderView 
 							src={imageStr}
