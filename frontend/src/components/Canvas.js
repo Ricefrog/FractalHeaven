@@ -45,9 +45,11 @@ const Canvas = ({
 	}, [textColor]);
 
 	const renderMousePosition = useCallback((canvasPos) => {
-		const ctx = canvasRef.current.getContext("2d");
-		const coords = getRelativePosition(canvasPos);
-		drawPosition(ctx, coords.x, coords.y);
+		if (canvasRef.current) {
+			const ctx = canvasRef.current.getContext("2d");
+			const coords = getRelativePosition(canvasPos);
+			drawPosition(ctx, coords.x, coords.y);
+		}
 	}, [canvasRef, drawPosition, getRelativePosition]);
 
 	const getMousePos = (event) => {

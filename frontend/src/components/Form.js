@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useState, useEffect} from 'react';
 import {PORT, MandelbrotCoords} from '../constants.js';
 import RenderView from './RenderView.js';
 
@@ -10,7 +10,7 @@ const PresetCoords = ({value, handleChange, handleClick}) => {
 	return (
 		<div className="flex mt-2">
 			<select 
-				className="outline-none"
+				className="w-1/2 outline-none"
 				value={value}
 				onChange={e => handleChange(e.target.value)}
 			>
@@ -86,7 +86,8 @@ const ZoomInput = ({
 				className="
 				my-2
 				ml-2
-				w-6em
+				w-1/3
+				sm:w-6em
 				pl-1
 				self-center
 				outline-none
@@ -137,7 +138,7 @@ const AAInput = ({checked, handleChange}) => {
 				self-center
 				ml-2
 				"
-				for="antiAliasing"
+				htmlFor="antiAliasing"
 			>
 				Anti-Aliasing
 			</label>
@@ -161,6 +162,8 @@ const FractalTypeInput = ({value, handleChange}) => {
 };
 
 const Form = () => {
+	const [index, setIndex] = useState(-1);
+	const [history, setHistory] = useState([]);
 	const [clientBounds, setClientBounds] = useState({
 		x: 0, y: 0, zoom: 1.0,
 	});
@@ -175,15 +178,63 @@ const Form = () => {
 		coordsToValueString(MandelbrotCoords[0]));
 	const [textColor, setTextColor] = useState("white");
 
+	const navButtonActiveClass = "bg-blue-400 hover:bg-blue-300 w-full sm:w-1/6 sm:h-2/3 "
+		+ "rounded-md font-mono outline-none p-3 flex-grow";
+
+	const navButtonInactiveClass = "bg-blue-300 sm:w-1/6 w-full sm:h-2/3 flex-grow "
+		+ "rounded-md font-mono text-white outline-none p-3 cursor-not-allowed";
+
+	/*
+	const showInfo = () => {
+		console.log(history);
+		console.log(index);
+	};
+	*/
+
+	const goBack = () => {
+		if (index > 0) {
+			objectToClientBounds(history[index-1]);
+			setIndex(index-1);
+		}
+	};
+
+	const goForward = () => {
+		if (index < history.length) {
+			objectToClientBounds(history[index+1]);
+			setIndex(index+1);
+		}
+	};
+
+	const objectToClientBounds = (object) => {
+		setClientBounds({
+			x: object.x,
+			y: object.y,
+			zoom: object.zoom,
+			fractalType: object.fractalType,
+			antiAliasing: object.antiAliasing,
+		});
+		setRenderBounds({
+			x: object.x,
+			y: object.y,
+			xmax: object.xmax,
+			xmin: object.xmin,
+			ymax: object.ymax,
+			ymin: object.ymin,
+		});
+		setFractalType(object.fractalType);
+		setAntiAliasing(object.antiAliasing);
+		setImageStr(object.imageStr);
+	};
+
 	const handleSubmit = () => {
-		const data = {
+		const clientData = {
 			x: parseFloat(clientBounds.x),
 			y: parseFloat(clientBounds.y),
 			zoom: parseFloat(clientBounds.zoom),
 			fractalType,
 			antiAliasing,
 		};
-		console.log("JSON.stringify:", JSON.stringify(data))
+		//console.log("JSON.stringify:", JSON.stringify(data))
 
 		setLoading(true);
 		setImageStr("");
@@ -192,23 +243,32 @@ const Form = () => {
 			headers: {
 				"Content-Type": "application/json",
 			},
-			body: JSON.stringify(data),
+			body: JSON.stringify(clientData),
 		})
 		.then(response => {
 				return response.json()
 			}
 		)
 		.then(data => {
-			console.log(data);
-			setRenderBounds({
-				...renderBounds,
+			const newRenderBounds = {
 				x: data.x,
 				y: data.y,
 				xmax: data.xmax,
 				xmin: data.xmin,
 				ymax: data.ymax,
 				ymin: data.ymin,
-			});
+			}
+			setRenderBounds(newRenderBounds);
+
+			const historyItem = {
+				...newRenderBounds,
+				...clientData,
+				imageStr: "data:image/jpeg;base64,"+data.base64,
+			};
+			const prevHistory = history.filter((el, i) => i <= index);
+			setHistory([...prevHistory, historyItem]);
+			setIndex(index+1);
+
 			setImageStr("data:image/jpeg;base64,"+data.base64);
 			setLoading(false);
 		})
@@ -217,6 +277,10 @@ const Form = () => {
 			setLoading(false);
 		});
 	};
+
+	useEffect(() => {
+		handleSubmit();
+	}, []);
 
 	const usePreset = (value) => {
 		let coords = value.split(" ");
@@ -239,6 +303,7 @@ const Form = () => {
 				bg-gray-400
 				w-2/3
 				lg:w-3/5
+				xl:w-1/2
 				2xl:w-5/12
 				text-center
 				flex
@@ -287,20 +352,42 @@ const Form = () => {
 					checked={antiAliasing}
 					handleChange={e => setAntiAliasing(e.target.checked)}
 				/>
-				<button
-					className="
-					mt-3
-					rounded-md
-					bg-red-400
-					hover:bg-red-300
-					p-3
-					font-mono
-					outline-none
-					"
-					onClick={handleSubmit}
-				>
-					RENDER FRACTAL
-				</button>
+				<div className="my-4 flex items-center sm:flex-row flex-col">
+					<button
+						className={
+							index > 0 
+								? navButtonActiveClass : navButtonInactiveClass
+						}
+						onClick={goBack}
+					>
+						Back
+					</button>
+					<button
+						className="
+						rounded-md
+						bg-red-400
+						hover:bg-red-300
+						mx-2
+						p-3
+						font-mono
+						outline-none
+						w-full
+						sm:flex-grow
+						"
+						onClick={handleSubmit}
+					>
+						RENDER FRACTAL
+					</button>
+					<button
+						className={
+							index < history.length-1
+								? navButtonActiveClass : navButtonInactiveClass
+						}
+						onClick={goForward}
+					>
+						Forward	
+					</button>
+				</div>
 			</div>
 				{loading ? <span>Rendering fractal...</span> : <></>}
 				{imageStr
