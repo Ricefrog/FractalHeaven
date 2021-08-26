@@ -20,6 +20,27 @@ const (
 	PORT          = "8080"
 )
 
+type requestStruct struct {
+	X             float64 `json:"x"`
+	Y             float64 `json:"y"`
+	Zoom          float64 `json:"zoom"`
+	FractalType   string  `json:"fractalType"`
+	FunctionToUse string  `json:"functionToUse"`
+	Colorized     bool    `json:"colorized"`
+	AntiAliasing  bool    `json:"antiAliasing"`
+	HighPrecision bool    `json:"highPrecision"`
+}
+
+type responseStruct struct {
+	Base64 string  `json:"base64"`
+	XMax   float64 `json:"xmax"`
+	XMin   float64 `json:"xmin"`
+	YMax   float64 `json:"ymax"`
+	YMin   float64 `json:"ymin"`
+	Cx     float64 `json:"x"`
+	Cy     float64 `json:"y"`
+}
+
 var t bool
 
 func init() {
@@ -48,25 +69,6 @@ func helloWorld(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-type requestStruct struct {
-	X             float64 `json:"x"`
-	Y             float64 `json:"y"`
-	Zoom          float64 `json:"zoom"`
-	FractalType   string  `json:"fractalType"`
-	AntiAliasing  bool    `json:"antiAliasing"`
-	HighPrecision bool    `json:"highPrecision"`
-}
-
-type responseStruct struct {
-	Base64 string  `json:"base64"`
-	XMax   float64 `json:"xmax"`
-	XMin   float64 `json:"xmin"`
-	YMax   float64 `json:"ymax"`
-	YMin   float64 `json:"ymin"`
-	Cx     float64 `json:"x"`
-	Cy     float64 `json:"y"`
-}
-
 func renderMandelbrot(s requestStruct) responseStruct {
 	log.Println("Rendering mandelbrot (regular precision).")
 	start := time.Now()
@@ -82,14 +84,17 @@ func renderMandelbrot(s requestStruct) responseStruct {
 		cx, cy,
 	)
 
+	var m render.MandelFunc
+	m = render.GetMandelFunc(s.Colorized)
+
 	log.Printf("Center: (%g, %g).\n", cx, cy)
 	var img image.Image
 	if s.AntiAliasing {
 		log.Println("Rendering with anti-aliasing.")
-		img = <-render.RenderMFrameAA(WIDTH, HEIGHT, frameInfo)
+		img = <-render.RenderMFrameAA(WIDTH, HEIGHT, frameInfo, m)
 	} else {
 		log.Println("Rendering without anti-aliasing.")
-		img = <-render.RenderMFrame(WIDTH, HEIGHT, frameInfo)
+		img = <-render.RenderMFrame(WIDTH, HEIGHT, frameInfo, m)
 	}
 
 	log.Printf("Image rendered. %f s.\n", time.Since(start).Seconds())
@@ -100,12 +105,12 @@ func renderMandelbrot(s requestStruct) responseStruct {
 
 	resStruct := responseStruct{
 		Base64: encodedImage,
-		XMax: xmax,
-		XMin: xmin,
-		YMax: ymax,
-		YMin: ymin,
-		Cx: cx,
-		Cy: cy,
+		XMax:   xmax,
+		XMin:   xmin,
+		YMax:   ymax,
+		YMin:   ymin,
+		Cx:     cx,
+		Cy:     cy,
 	}
 	return resStruct
 }
@@ -169,6 +174,67 @@ func renderMandelbrotHP(s requestStruct) responseStruct {
 	return resStruct
 }
 
+func renderNewton(s requestStruct) responseStruct {
+	log.Println("Rendering mandelbrot (regular precision).")
+	start := time.Now()
+	cx, cy := s.X, -s.Y
+	boundary := 2.0 / s.Zoom
+	xmin, ymin := (cx - boundary), (cy - boundary)
+	xmax, ymax := (cx + boundary), (cy + boundary)
+
+	frameInfo := render.ConstructFrameInfo(
+		boundary,
+		xmin, ymin,
+		xmax, ymax,
+		cx, cy,
+	)
+
+	var function render.NewtonFunc
+	switch s.FunctionToUse {
+	case "f(z) = z^4 - 1":
+		function = render.NewtonOne(s.Colorized)
+	case "f(z) = z^3 - 1":
+		function = render.NewtonTwo(s.Colorized)
+	case "f(z) = 5cos(3z)":
+		function = render.NewtonThree(s.Colorized)
+	case "f(z) = ln(z)":
+		function = render.NewtonFour(s.Colorized)
+	case "f(z) = z^3 - 1, a = 2":
+		function = render.NewtonFive(s.Colorized)
+	case "f(z) = cosh(z) - 1":
+		function = render.NewtonSix(s.Colorized)
+	default:
+		function = render.NewtonOne(s.Colorized)
+	}
+
+	log.Printf("Center: (%g, %g).\n", cx, cy)
+	var img image.Image
+	if s.AntiAliasing {
+		log.Println("Rendering with anti-aliasing.")
+		img = <-render.RenderNFrameAA(WIDTH, HEIGHT, frameInfo, function)
+	} else {
+		log.Println("Rendering without anti-aliasing.")
+		img = <-render.RenderNFrame(WIDTH, HEIGHT, frameInfo, function)
+	}
+
+	log.Printf("Image rendered. %f s.\n", time.Since(start).Seconds())
+
+	buf := new(bytes.Buffer)
+	jpeg.Encode(buf, img, nil)
+	encodedImage := base64.StdEncoding.EncodeToString(buf.Bytes())
+
+	resStruct := responseStruct{
+		Base64: encodedImage,
+		XMax:   xmax,
+		XMin:   xmin,
+		YMax:   ymax,
+		YMin:   ymin,
+		Cx:     cx,
+		Cy:     cy,
+	}
+	return resStruct
+}
+
 func renderFractal(w http.ResponseWriter, r *http.Request) {
 	log.Println("renderFractal received response.")
 
@@ -183,12 +249,14 @@ func renderFractal(w http.ResponseWriter, r *http.Request) {
 
 	log.Println(s)
 	var resStruct responseStruct
-	if (s.FractalType == "mandelbrot") {
-		if (s.HighPrecision) {
+	if s.FractalType == "mandelbrot" {
+		if s.HighPrecision {
 			resStruct = renderMandelbrotHP(s)
 		} else {
 			resStruct = renderMandelbrot(s)
 		}
+	} else if s.FractalType == "newton" {
+		resStruct = renderNewton(s)
 	}
 
 	jsonData, err := json.Marshal(resStruct)

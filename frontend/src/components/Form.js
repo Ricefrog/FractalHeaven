@@ -1,9 +1,33 @@
 import {useState, useEffect} from 'react';
-import {PORT, MandelbrotCoords} from '../constants.js';
+import {PORT, MandelbrotCoords, Functions} from '../constants.js';
 import RenderView from './RenderView.js';
-
 const coordsToValueString = (coords) => {
 	return `${coords.x} ${coords.y}`;
+};
+
+const FunctionSelect = ({value, handleChange}) => {
+	return (
+		<div className="flex mt-2">
+			<select 
+				className="w-1/2 outline-none"
+				value={value}
+				onChange={e => handleChange(e.target.value)}
+			>
+				{
+					Functions.map((f, index) => {
+						return (
+							<option
+								key={index}
+								value={f}
+							>
+								{f}
+							</option>
+						);
+					})
+				}
+			</select>
+		</div>
+	);
 };
 
 const PresetCoords = ({value, handleChange, handleClick}) => {
@@ -169,6 +193,29 @@ const HPInput = ({checked, handleChange}) => {
 	);
 };
 
+const ColorInput = ({checked, handleChange}) => {
+	return (
+		<div className="flex">
+			<input 
+				className="self-center"
+				type="checkbox"
+				name="colorized"
+				onChange={e => handleChange(e)}
+				checked={checked}
+			/>
+			<label
+				className="
+				self-center
+				ml-2
+				"
+				htmlFor="colorized"
+			>
+				Colorized
+			</label>
+		</div>
+	);
+};
+
 const FractalTypeInput = ({value, handleChange}) => {
 	return (
 		<div className="flex">
@@ -199,13 +246,15 @@ const Form = () => {
 	const [antiAliasing, setAntiAliasing] = useState(false);
 	const [highPrecision, setHighPrecision] = useState(false);
 	const [presetCoords, setPresetCoords] = useState(coordsToValueString(MandelbrotCoords[0]));
-	const [textColor, setTextColor] = useState("white");
+	const [functionToUse, setFunctionToUse] = useState(Functions[0]);
+	const [colorized, setColorized] = useState(false);
+	const [textColor, setTextColor] = useState("black");
 	const [fetchError, setFetchError] = useState(false);
 
-	const navButtonActiveClass = "bg-blue-400 hover:bg-blue-300 w-full sm:w-1/6 sm:h-2/3 "
+	const navButtonActiveClass = "bg-blue-400 hover:bg-blue-300 w-full md:w-1/6 sm:h-2/3 "
 		+ "rounded-md font-mono outline-none p-3 flex-grow";
 
-	const navButtonInactiveClass = "bg-blue-300 sm:w-1/6 w-full sm:h-2/3 flex-grow "
+	const navButtonInactiveClass = "bg-blue-300 w-full md:w-1/6 sm:h-2/3 flex-grow "
 		+ "rounded-md font-mono text-white outline-none p-3 cursor-not-allowed";
 
 	/*
@@ -244,8 +293,10 @@ const Form = () => {
 			ymin: object.ymin,
 		});
 		setFractalType(object.fractalType);
+		setFunctionToUse(object.functionToUse);
 		setAntiAliasing(object.antiAliasing);
 		setHighPrecision(object.highPrecision);
+		setColorized(object.colorized);
 		setImageStr(object.imageStr);
 	};
 
@@ -255,8 +306,10 @@ const Form = () => {
 			y: parseFloat(clientBounds.y),
 			zoom: parseFloat(clientBounds.zoom),
 			fractalType,
+			functionToUse,
 			antiAliasing,
 			highPrecision,
+			colorized,
 		};
 		//console.log("JSON.stringify:", JSON.stringify(data))
 
@@ -353,11 +406,17 @@ const Form = () => {
 					value={fractalType}
 					handleChange={v => setFractalType(v)}
 				/>
-				<PresetCoords 
-					value={presetCoords}
-					handleChange={v => setPresetCoords(v)}
-					handleClick={usePreset}
-				/>
+				{fractalType === "mandelbrot"
+					? <PresetCoords 
+							value={presetCoords}
+							handleChange={v => setPresetCoords(v)}
+							handleClick={usePreset}
+						/>
+					: <FunctionSelect
+							value={functionToUse}
+							handleChange={v => setFunctionToUse(v)}
+						/>
+				}
 				<CoordInput 
 					label={"x-coordinate:"}
 					name={"x"}
@@ -378,11 +437,11 @@ const Form = () => {
 					checked={antiAliasing}
 					handleChange={e => setAntiAliasing(e.target.checked)}
 				/>
-				<HPInput
-					checked={highPrecision}
-					handleChange={e => setHighPrecision(e.target.checked)}
+				<ColorInput 
+					checked={colorized}
+					handleChange={e => setColorized(e.target.checked)}
 				/>
-				<div className="my-4 flex items-center sm:flex-row flex-col">
+				<div className="my-4 flex items-center md:flex-row flex-col">
 					<button
 						className={
 							index > 0 

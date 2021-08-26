@@ -45,6 +45,15 @@ const MandelbrotCoords = [
 	},
 ];
 
+const Functions = [
+	"f(z) = z^4 - 1",
+	"f(z) = z^3 - 1",
+	"f(z) = 5cos(3z)",
+	"f(z) = ln(z)",
+	"f(z) = z^3 - 1, a = 2",
+	"f(z) = cosh(z) - 1",
+];
+
 const PORT = "8080";
 
-export { PORT, MandelbrotCoords };
+export { PORT, MandelbrotCoords, Functions };
