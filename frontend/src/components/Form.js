@@ -1,6 +1,11 @@
 import {useState, useEffect} from 'react';
 import {PORT, MandelbrotCoords, Functions} from '../constants.js';
 import RenderView from './RenderView.js';
+
+let API_URL = `http://localhost:${PORT}/api/renderFractal`;
+if (process.env.API_URL) {
+	API_URL = process.env.API_URL;
+}
 const coordsToValueString = (coords) => {
 	return `${coords.x} ${coords.y}`;
 };
@@ -316,7 +321,7 @@ const Form = () => {
 		setFetchError(false);
 		setLoading(true);
 		setImageStr("");
-		fetch(`http://localhost:${PORT}/api/renderFractal`, {
+		fetch(API_URL, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",

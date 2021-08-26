@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"flag"
-	"fractalHeaven/render"
+	"github.com/Ricefrog/fractalHeaven/render"
 	"github.com/rs/cors"
 	"image"
 	"image/jpeg"
