@@ -2,9 +2,10 @@ import {useState, useEffect} from 'react';
 import {PORT, MandelbrotCoords, Functions} from '../constants.js';
 import RenderView from './RenderView.js';
 
+console.log("process.env:", process.env);
 let API_URL = `http://localhost:${PORT}/api/renderFractal`;
-if (process.env.API_URL) {
-	API_URL = process.env.API_URL;
+if (process.env.REACT_APP_API_URL) {
+	API_URL = process.env.REACT_APP_API_URL;
 }
 const coordsToValueString = (coords) => {
 	return `${coords.x} ${coords.y}`;
