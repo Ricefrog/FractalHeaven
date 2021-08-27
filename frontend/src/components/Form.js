@@ -60,6 +60,7 @@ const PresetCoords = ({value, handleChange, handleClick}) => {
 			</select>
 			<button
 				className="
+				rounded-md
 				bg-red-400
 				hover:bg-red-300
 				p-2

@@ -1,6 +1,10 @@
 import Form from './components/Form.js';
+import About from './components/About.js';
+import {useState} from 'react';
 
 const App = () => {
+	const [aboutOpen, setAboutOpen] = useState(false);
+
   return (
 		<div 
 			className="
@@ -12,7 +16,24 @@ const App = () => {
 				flex
 			"
 		>
-			<Form />
+			<div
+				className="
+				m-4
+				left-0
+				top-0
+				absolute
+				font-mono
+				cursor-pointer
+				text-gray-600
+				"
+				onClick={() => setAboutOpen(!aboutOpen)}
+			>
+				{aboutOpen ? "Back" : "About"}
+			</div>
+			{aboutOpen
+				? <About handleClose={() => setAboutOpen(false)}/>
+				: <Form />
+			}
 		</div>
   );
 };
