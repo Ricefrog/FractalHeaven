@@ -384,10 +384,12 @@ const Form = () => {
 			className="
 				my-auto
 				mx-auto
+				mt-12
 				shadow-2xl
 				rounded-lg
 				bg-gray-400
-				w-2/3
+				w-full
+				sm:w-2/3
 				lg:w-3/5
 				xl:w-1/2
 				2xl:w-5/12

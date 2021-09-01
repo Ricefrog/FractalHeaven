@@ -4,10 +4,12 @@ const About = ({handleClose}) => {
 			className="
 			my-auto
 			mx-auto
+			mt-12
 			shadow-2xl
 			rounded-lg
 			bg-black
-			w-2/3
+			w-full
+			sm:w-2/3
 			lg:w-3/5
 			xl:w-1/2
 			2xl:w-5/12
@@ -36,7 +38,7 @@ const About = ({handleClose}) => {
 				>x</div>
 			</div>
 			<div className="m-8 text-white">
-				<p>
+				<p className="truncate">
 					Types of fractals available for rendering:
 					<br />Mandelbrot set:{" "}
 					<a 
